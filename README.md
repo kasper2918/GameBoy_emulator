@@ -1,1 +1,2 @@
-# CMakeProject1
+# GameBoy Emulator
+In very early development
