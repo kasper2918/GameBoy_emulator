@@ -27,3 +27,29 @@ endif()
 add_subdirectory(vendor/SDL EXCLUDE_FROM_ALL)
 
 target_link_libraries(GameBoy_emu PRIVATE SDL3::SDL3)
+
+if (EXISTS vendor/googletest-1.17.0)
+	# For Windows: Prevent overriding the parent project's compiler/linker settings
+	set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+	add_subdirectory(vendor/googletest-1.17.0)
+	enable_testing()
+	include_directories(${gtest_SOURCE_DIR}/include ${gtest_SOURCE_DIR})
+	include_directories(${gmock_SOURCE_DIR}/include ${gmock_SOURCE_DIR})
+
+	add_executable(
+	  hello_test
+	  "GameBoy_emu/UnitTests.cpp"
+	  "GameBoy_emu/CPU/Emulator.h" "GameBoy_emu/CPU/Emulator.cpp" "GameBoy_emu/CPU/PublicFunctions.cpp" "GameBoy_emu/CPU/Memory.cpp" "GameBoy_emu/CPU/Timers.cpp" "GameBoy_emu/CPU/Interupts.cpp" "GameBoy_emu/CPU/LCD.cpp" "GameBoy_emu/CPU/Misc.cpp"
+	)
+	set_property(TARGET hello_test PROPERTY CXX_STANDARD 23)
+	target_link_libraries(
+	  hello_test
+	  GTest::gtest_main
+	  gmock_main
+	)
+
+	include(GoogleTest)
+	gtest_discover_tests(hello_test)
+
+	add_test(hello_test hello_test)
+endif()

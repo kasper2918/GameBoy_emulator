@@ -31,7 +31,8 @@ void Emulator::service_interupt(int interupt) {
     write_memory(0xFF0F, req);
 
     /// we must save the current execution address by pushing it onto the stack
-    m_rom[m_stack_pointer.reg--] = m_program_counter;
+    m_rom[m_stack_pointer.reg--] = m_program_counter & 0b11111111; // possible bug
+    m_rom[m_stack_pointer.reg--] = m_program_counter >> 8;
 
     switch (interupt)
     {

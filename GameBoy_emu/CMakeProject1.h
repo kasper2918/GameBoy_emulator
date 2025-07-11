@@ -4,6 +4,6 @@
 #pragma once
 
 #include <iostream>
-#include "Emulator.h"
+#include "CPU/Emulator.h"
 
 // TODO: установите здесь ссылки на дополнительные заголовки, требующиеся для программы.

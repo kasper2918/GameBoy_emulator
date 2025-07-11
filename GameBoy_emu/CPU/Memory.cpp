@@ -60,7 +60,7 @@ void Emulator::write_memory(WORD address, BYTE data)
 		}
 	}
 
-	else if (0xFF04 == address)
+	else if (address == 0xFF04)
 		m_rom[0xFF04] = 0;
 
 	else if (address == 0xFF44)
@@ -153,7 +153,7 @@ void Emulator::do_change_loROM_bank(BYTE data)
 	BYTE lower5 = data & 31;
 	m_current_ROM_bank &= 224; // turn off the lower 5
 	m_current_ROM_bank |= lower5;
-	if (m_current_ROM_bank == 0) + m_current_ROM_bank;
+	if (m_current_ROM_bank == 0) ++m_current_ROM_bank;
 }
 
 void Emulator::do_change_hiRom_bank(BYTE data) {

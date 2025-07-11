@@ -4,8 +4,15 @@
 #include <string_view>
 #include <memory>
 
+#ifndef NDEBUG
+#include <gtest/gtest.h>
+#include <gtest/gtest_prod.h>
+#endif // !NDEBUG
+
 class Emulator {
 public:
+	Emulator() = default;
+	
 	void load_game(std::string_view path);
 	void update();
 	void initialize();
@@ -14,11 +21,14 @@ public:
 	Emulator& operator=(const Emulator&) = delete;
 	Emulator(const Emulator&&) = delete;
 	Emulator& operator=(const Emulator&&) = delete;
+#ifndef NDEBUG
+	FRIEND_TEST(EmulatorTest, MemoryTest);
+#endif // !NDEBUG
 
 private:
 	std::unique_ptr<BYTE[]> m_cartridge_memory{ std::make_unique<BYTE[]>(0x200000) };
 	BYTE m_rom[0x10000];
-	BYTE m_screen_data[160][144][3];
+	BYTE m_screen_data[160][144][3]{};
 
 	union Register {
 		WORD reg;
@@ -28,10 +38,10 @@ private:
 		};
 	};
 
-	Register m_registerAF;
-	Register m_registerBC;
-	Register m_registerDE;
-	Register m_registerHL;
+	Register m_registerAF{};
+	Register m_registerBC{};
+	Register m_registerDE{};
+	Register m_registerHL{};
 
 	const int FLAG_Z{ 7 };
 	const int FLAG_N{ 6 };
