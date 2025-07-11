@@ -70,9 +70,16 @@ private:
 	int m_divider_counter{ 0 };
 	std::reference_wrapper<BYTE> m_divider_register{ std::ref(m_rom[0xFF04]) };
 
-	bool m_interupt_master{ true }; // possible bug
+	bool m_interupt_master{}; // possible bug
 
 	int m_scanline_counter{};
+
+	enum COLOUR {
+		WHITE,
+		LIGHT_GRAY,
+		DARK_GRAY,
+		BLACK,
+	};
 
 	int execute_next_opcode();
 
@@ -90,6 +97,9 @@ private:
 	bool is_LCD_enabled() const;
 	void set_LCD_status();
 	void draw_scan_line();
+	void render_tiles();
+	COLOUR get_colour(BYTE colour_num, WORD address) const;
+	void render_sprites();
 
 	void do_DMA_transfer(BYTE data);
 
