@@ -12,7 +12,7 @@
 class Emulator {
 public:
 	Emulator() = default;
-	
+
 	void load_game(std::string_view path);
 	void update();
 	void initialize();
@@ -59,7 +59,7 @@ private:
 	BYTE m_current_RAM_bank{};
 
 	bool m_enable_RAM{};
-	
+
 	bool m_rom_banking{ true };
 
 	const int TIMA{ 0xFF05 };
@@ -81,6 +81,8 @@ private:
 		BLACK,
 	};
 
+	BYTE m_joypad_state{ 0xFF }; // possible bug
+
 	int execute_next_opcode();
 
 	void request_interupt(int id);
@@ -100,6 +102,10 @@ private:
 	void render_tiles();
 	COLOUR get_colour(BYTE colour_num, WORD address) const;
 	void render_sprites();
+
+	void key_pressed(int key);
+	void key_released(int key);
+	BYTE get_joypad_state() const;
 
 	void do_DMA_transfer(BYTE data);
 

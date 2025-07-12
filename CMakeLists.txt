@@ -18,7 +18,7 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIGURATION>")
 add_subdirectory ("vendor")
 add_subdirectory ("GameBoy_emu")
 
-add_executable (GameBoy_emu "GameBoy_emu/CMakeProject1.cpp" "GameBoy_emu/CMakeProject1.h" "GameBoy_emu/Types.h" "GameBoy_emu/CPU/Emulator.h" "GameBoy_emu/CPU/Emulator.cpp" "GameBoy_emu/CPU/PublicFunctions.cpp" "GameBoy_emu/CPU/Memory.cpp" "GameBoy_emu/CPU/Timers.cpp" "GameBoy_emu/CPU/Interupts.cpp" "GameBoy_emu/CPU/LCD.cpp" "GameBoy_emu/CPU/Misc.cpp")
+add_executable (GameBoy_emu "GameBoy_emu/Main.cpp"  "GameBoy_emu/Types.h" "GameBoy_emu/CPU/Emulator.h" "GameBoy_emu/CPU/Emulator.cpp" "GameBoy_emu/CPU/PublicFunctions.cpp" "GameBoy_emu/CPU/Memory.cpp" "GameBoy_emu/CPU/Timers.cpp" "GameBoy_emu/CPU/Interupts.cpp" "GameBoy_emu/CPU/LCD.cpp" "GameBoy_emu/CPU/Misc.cpp" "GameBoy_emu/CPU/Joypad.cpp")
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
   set_property(TARGET GameBoy_emu PROPERTY CXX_STANDARD 20)
@@ -40,7 +40,7 @@ if (EXISTS vendor/googletest-1.17.0)
 	  hello_test
 	  "GameBoy_emu/UnitTests.cpp"
 	  "GameBoy_emu/CPU/Emulator.h" "GameBoy_emu/CPU/Emulator.cpp" "GameBoy_emu/CPU/PublicFunctions.cpp" "GameBoy_emu/CPU/Memory.cpp" "GameBoy_emu/CPU/Timers.cpp" "GameBoy_emu/CPU/Interupts.cpp" "GameBoy_emu/CPU/LCD.cpp" "GameBoy_emu/CPU/Misc.cpp"
-	)
+	 "GameBoy_emu/CPU/Joypad.cpp")
 	set_property(TARGET hello_test PROPERTY CXX_STANDARD 23)
 	target_link_libraries(
 	  hello_test
