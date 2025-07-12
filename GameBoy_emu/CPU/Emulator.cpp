@@ -151,7 +151,7 @@ int Emulator::execute_opcode(BYTE opcode) {
 			return 3;
 		}
 		if (opcode == 0xF8) {
-
+			CPU_16bit_load();
 			return 3;
 		}
 		break;
