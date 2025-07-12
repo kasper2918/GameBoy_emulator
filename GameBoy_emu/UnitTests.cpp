@@ -52,6 +52,16 @@ TEST_F(EmulatorTest, MemoryTest) {
 	EXPECT_EQ(emu->m_current_RAM_bank, 0b10);
 }
 
+TEST_F(EmulatorTest, CPUTest) {
+	BYTE n = emu->read_memory(emu->m_program_counter + 1);
+	emu->execute_opcode(0x06);
+	EXPECT_EQ(emu->m_registerBC.hi, n);
+
+	emu->m_registerDE.lo = 237;
+	emu->execute_opcode(0x7B);
+	EXPECT_EQ(emu->m_registerAF.hi, 237);
+}
+
 int main(int argc, char** argv)
 {
 	::testing::InitGoogleTest(&argc, argv);

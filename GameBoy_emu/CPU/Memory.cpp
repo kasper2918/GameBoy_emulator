@@ -16,6 +16,9 @@ BYTE Emulator::read_memory(WORD address) const
 		return m_RAM_banks[new_address + (m_current_RAM_bank * 0x2000)];
 	}
 
+	else if (address == 0xFF00)
+		return get_joypad_state();
+
 	// else return memory
 	return m_rom[address];
 }

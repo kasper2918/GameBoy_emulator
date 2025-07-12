@@ -3,6 +3,9 @@
 #include "../Types.h"
 #include <string_view>
 #include <memory>
+#include <functional>
+#include <array>
+#include <unordered_map>
 
 #ifndef NDEBUG
 #include <gtest/gtest.h>
@@ -23,6 +26,7 @@ public:
 	Emulator& operator=(const Emulator&&) = delete;
 #ifndef NDEBUG
 	FRIEND_TEST(EmulatorTest, MemoryTest);
+	FRIEND_TEST(EmulatorTest, CPUTest);
 #endif // !NDEBUG
 
 private:
@@ -42,6 +46,24 @@ private:
 	Register m_registerBC{};
 	Register m_registerDE{};
 	Register m_registerHL{};
+
+	std::array<std::reference_wrapper<BYTE>, 8> m_registers{
+		m_registerBC.hi, // 000 0
+		m_registerBC.lo, // 001 1
+		m_registerDE.hi, // 010 2
+		m_registerDE.lo, // 011 3
+		m_registerHL.hi, // 100 4
+		m_registerHL.lo, // 101 5
+		m_registerHL.lo, // 110 6
+		m_registerAF.hi, // 111 7
+	};
+
+	std::array<std::reference_wrapper<WORD>, 4> m_registers16{
+		m_registerAF.reg,
+		m_registerBC.reg,
+		m_registerDE.reg,
+		m_registerHL.reg,
+	};
 
 	const int FLAG_Z{ 7 };
 	const int FLAG_N{ 6 };
@@ -84,6 +106,25 @@ private:
 	BYTE m_joypad_state{ 0xFF }; // possible bug
 
 	int execute_next_opcode();
+	int execute_opcode(BYTE opcode);
+
+	//CPUFunctions.cpp
+	void CPU_8bit_load(BYTE& reg);
+	void CPU_8bit_add(BYTE& reg, BYTE to_add,
+		bool use_immediate, bool add_carry);
+	void CPU_8bit_sub(BYTE& reg, BYTE subtracting,
+		bool use_immediate, bool sub_carry);
+	void CPU_8bit_xor(BYTE& reg, BYTE to_xor,
+		bool use_immediate);
+	void CPU_8bit_and(BYTE& reg, BYTE to_and,
+		bool use_immediate);
+	void CPU_8bit_or(BYTE& reg, BYTE to_or,
+		bool use_immediate);
+	void CPU_jump_immediate(bool use_condition, int flag, bool condition);
+	void CPU_jump_nn(bool use_condition, int flag, bool condition);
+	void CPU_call(bool use_condition, int flag, bool condition);
+	void CPU_return(bool use_condition, int flag, bool condition);
+	void CPU_16bit_load();
 
 	void request_interupt(int id);
 	void do_interupts();
@@ -107,7 +148,12 @@ private:
 	void key_released(int key);
 	BYTE get_joypad_state() const;
 
+	// Misc.cpp
 	void do_DMA_transfer(BYTE data);
+	void push_word_onto_stack(WORD word);
+	WORD pop_word_off_stack();
+	WORD unsigned16(BYTE lsb, BYTE msb);
+	WORD get_nn();
 
 	BYTE read_memory(WORD address) const;
 	void write_memory(WORD address, BYTE data);

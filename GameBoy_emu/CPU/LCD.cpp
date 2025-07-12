@@ -1,5 +1,12 @@
 #include "Emulator.h"
 
+template< typename T >
+T bit_get_val(T in_data, size_t in_bit_position)
+{
+	T l_msk = 1 << in_bit_position;
+	return (in_data & l_msk) ? 1 : 0;
+}
+
 void Emulator::update_graphics(int cycles) {
 	set_LCD_status();
 
@@ -281,12 +288,7 @@ void Emulator::render_sprites() {
 	}
 }
 
-template< typename T >
-T bit_get_val(T in_data, size_t in_bit_position)
-{
-	T l_msk = 1 << in_bit_position;
-	return (in_data & l_msk) ? 1 : 0;
-}
+
 
 Emulator::COLOUR Emulator::get_colour(BYTE colour_num, WORD address) const {
 	COLOUR res = WHITE;

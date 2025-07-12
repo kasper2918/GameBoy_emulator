@@ -12,8 +12,8 @@ void Emulator::update() {
 		int cycles = execute_next_opcode();
 		cycles_this_update += cycles;
 		update_timers(cycles);
-
-		// TODO: continue implementing this
+		update_graphics(cycles);
+		do_interupts();
 	}
 
 	// TODO: add rendering
