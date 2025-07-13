@@ -47,6 +47,37 @@ void Emulator::CPU_8bit_add(BYTE& reg, BYTE to_add,
 		m_registerAF.lo |= 1 << FLAG_C;
 }
 
+void Emulator::CPU_8bit_inc(BYTE& reg) {
+	if (reg + 1 == 0)
+		m_registerAF.lo |= 1 << FLAG_Z;
+
+	WORD htest = (reg & 0xF);
+	++htest;
+
+	if (htest > 0xF)
+		m_registerAF.lo |= 1 << FLAG_H;
+
+	m_registerAF.lo &= ~(1 << FLAG_N);
+
+	++reg;
+}
+
+void Emulator::CPU_8bit_incHL() {
+	BYTE data{ read_memory(m_registerHL.reg) };
+	if (data + 1 == 0)
+		m_registerAF.lo |= 1 << FLAG_Z;
+
+	WORD htest = (data & 0xF);
+	++htest;
+
+	if (htest > 0xF)
+		m_registerAF.lo |= 1 << FLAG_H;
+
+	m_registerAF.lo &= ~(1 << FLAG_N);
+
+	write_memory(m_registerHL.reg, ++data);
+}
+
 void Emulator::CPU_8bit_sub(BYTE& reg, BYTE subtracting,
 	bool use_immediate, bool sub_carry)
 {
@@ -88,6 +119,71 @@ void Emulator::CPU_8bit_sub(BYTE& reg, BYTE subtracting,
 	if (htest < 0)
 		m_registerAF.lo |= 1 << FLAG_H;
 }
+
+void Emulator::CPU_8bit_cmp(BYTE reg, BYTE subtracting,
+	bool use_immediate)
+{
+	BYTE to_subtract = 0;
+
+	if (use_immediate)
+	{
+		BYTE n = read_memory(m_program_counter++);
+		to_subtract = n;
+	}
+	else
+	{
+		to_subtract = subtracting;
+	}
+
+	m_registerAF.lo = 0;
+
+	if (reg - to_subtract == 0)
+		m_registerAF.lo |= 1 << FLAG_Z;
+
+	m_registerAF.lo |= 1 << FLAG_N;
+
+	// set if no borrow
+	if (reg < to_subtract)
+		m_registerAF.lo |= 1 << FLAG_C;
+
+	SIGNED_WORD htest = (reg & 0xF);
+	htest -= (to_subtract & 0xF);
+
+	if (htest < 0)
+		m_registerAF.lo |= 1 << FLAG_H;
+}
+
+void Emulator::CPU_8bit_dec(BYTE& reg) {
+	if (reg - 1 == 0)
+		m_registerAF.lo |= 1 << FLAG_Z;
+
+	m_registerAF.lo |= 1 << FLAG_N;
+
+	SIGNED_WORD htest = (reg & 0xF);
+	--htest;
+
+	if (htest < 0)
+		m_registerAF.lo |= 1 << FLAG_H;
+
+	--reg;
+}
+
+void Emulator::CPU_8bit_decHL() {
+	BYTE data{ read_memory(m_registerHL.reg) };
+
+	if (data - 1 == 0)
+		m_registerAF.lo |= 1 << FLAG_Z;
+
+	m_registerAF.lo |= 1 << FLAG_N;
+
+	SIGNED_WORD htest = (data & 0xF);
+	--htest;
+	if (htest < 0)
+		m_registerAF.lo |= 1 << FLAG_H;
+
+	write_memory(m_registerHL.reg, ++data);
+}
+
 
 void Emulator::CPU_8bit_xor(BYTE& reg, BYTE to_xor,
 	bool use_immediate)
@@ -179,9 +275,46 @@ void Emulator::CPU_return(bool use_condition, int flag, bool condition) {
 	}
 }
 
-/**
-	possible bug
-*/
+// STOLEN FROM GUY WHO ALSO STOLE IT
+void Emulator::CPU_DAA()
+{
+
+	if (m_registerAF.lo & (1 << FLAG_N))
+	{
+		if ((m_registerAF.hi & 0x0F) > 0x09 || m_registerAF.lo & 0x20)
+		{
+			m_registerAF.hi -= 0x06; //Half borrow: (0-1) = (0xF-0x6) = 9
+			if ((m_registerAF.hi & 0xF0) == 0xF0) 
+				m_registerAF.lo |= 0x10;
+			else
+				m_registerAF.lo &= ~0x10;
+		}
+
+		if ((m_registerAF.hi & 0xF0) > 0x90 || m_registerAF.lo & 0x10)
+			m_registerAF.hi -= 0x60;
+	}
+	else
+	{
+		if ((m_registerAF.hi & 0x0F) > 9 || m_registerAF.lo & 0x20)
+		{
+			m_registerAF.hi += 0x06; //Half carry: (9+1) = (0xA+0x6) = 10
+			if ((m_registerAF.hi & 0xF0) == 0)
+				m_registerAF.lo |= 0x10;
+			else
+				m_registerAF.lo &= ~0x10;
+		}
+
+		if ((m_registerAF.hi & 0xF0) > 0x90 || m_registerAF.lo & 0x10)
+			m_registerAF.hi += 0x60;
+	}
+
+	if (m_registerAF.hi == 0) 
+		m_registerAF.lo |= 0x80;
+	else
+		m_registerAF.lo &= ~0x80;
+}
+
+// possible bug
 void Emulator::CPU_16bit_load() {
 	m_registerAF.lo = 0;
 	SIGNED_BYTE e{ static_cast<SIGNED_BYTE>(read_memory(m_program_counter++)) };
@@ -206,4 +339,45 @@ void Emulator::CPU_16bit_load() {
 	}
 
 	m_registerHL.reg = m_stack_pointer.reg + e;
+}
+
+void Emulator::CPU_16bit_add(WORD regis) {
+	WORD htest = (m_registerHL.reg & 0xFFF);
+	htest += (regis & 0xFFF);
+	if (htest > 0xFFF)
+		m_registerAF.lo |= 1 << FLAG_H;
+
+	if ((m_registerHL.reg + regis) > 0xFFFF)
+		m_registerAF.lo |= 1 << FLAG_C;
+	
+	m_registerAF.lo &= ~(1 << FLAG_N);
+
+	m_registerHL.reg += regis;
+}
+
+// possible bug
+void Emulator::CPU_16bit_addSP() {
+	m_registerAF.lo = 0;
+	SIGNED_BYTE e{ static_cast<SIGNED_BYTE>(read_memory(m_program_counter++)) };
+
+	if (e >= 0) {
+		WORD htest(m_stack_pointer.reg & 0xF);
+		htest += e & 0xF;
+		if (htest > 0xF)
+			m_registerAF.lo |= 1 << FLAG_H;
+
+		if ((m_stack_pointer.reg + e) > 0xFF)
+			m_registerAF.lo |= 1 << FLAG_C;
+	}
+	else {
+		SIGNED_WORD htest(m_stack_pointer.reg & 0xF);
+		htest -= e & 0xF;
+		if (htest < 0)
+			m_registerAF.lo |= 1 << FLAG_H;
+
+		if (m_stack_pointer.reg < e)
+			m_registerAF.lo |= 1 << FLAG_C;
+	}
+
+	m_stack_pointer.reg += e;
 }

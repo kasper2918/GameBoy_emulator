@@ -28,9 +28,17 @@ int Emulator::execute_opcode(BYTE opcode) {
 	BYTE& yyy{ m_registers[m210].get() };
 
 	switch ((opcode & (m7 | m6)) >> 6) {
-	case 0x00: {
+	case 0b00: {
 		BYTE m_last5(opcode & (m0 | m1 | m2 | m3 | m4 | m5));
-		
+
+		std::array<std::reference_wrapper<WORD>, 4> regs16{
+				m_registerBC.reg,
+				m_registerDE.reg,
+				m_registerHL.reg,
+				m_stack_pointer.reg,
+		};
+		WORD& reg16{ regs16[(opcode & (m5 | m4)) >> 4].get() };
+
 		if (m543 == 0b110 && m210 == 0b110) {
 			BYTE n{ read_memory(m_program_counter++) };
 			write_memory(m_registerHL.reg, n);
@@ -57,14 +65,6 @@ int Emulator::execute_opcode(BYTE opcode) {
 		}
 
 		if (opcode & 1) {
-			std::array<std::reference_wrapper<WORD>, 4> regs16{
-				m_registerBC.reg,
-				m_registerDE.reg,
-				m_registerHL.reg,
-				m_stack_pointer.reg,
-			};
-			WORD& reg16{ regs16[(opcode & (m5 | m4)) >> 4].get() };
-			
 			reg16 = get_nn();
 			return 3;
 		}
@@ -74,11 +74,62 @@ int Emulator::execute_opcode(BYTE opcode) {
 			write_memory(nn, m_stack_pointer.hi);
 			return 5;
 		}
-		
-		
+
+		switch (m210) {
+		case 0b100:
+			if (m543 == 110) {
+				CPU_8bit_incHL();
+				return 3;
+			}
+			CPU_8bit_inc(xxx);
+			return 1;
+		case 0b101:
+			if (m543 == 110) {
+				CPU_8bit_decHL();
+				return 3;
+			}
+			CPU_8bit_dec(xxx);
+			return 1;
+		}
+
+		switch (opcode) {
+		case 0x3F:
+			m_registerAF.lo &= ~(1 << FLAG_N);
+			m_registerAF.lo &= ~(1 << FLAG_H);
+			m_registerAF.lo ^= 1 << FLAG_C;
+			return 1;
+		case 0x37:
+			m_registerAF.lo &= ~(1 << FLAG_N);
+			m_registerAF.lo &= ~(1 << FLAG_H);
+			m_registerAF.lo |= 1 << FLAG_C;
+			return 1;
+		case 0x27:
+			CPU_DAA();
+			return 1;
+		case 0x2F:
+			m_registerAF.hi = ~m_registerAF.hi;
+			m_registerAF.lo |= 1 << FLAG_N;
+			m_registerAF.lo |= 1 << FLAG_H;
+			return 1;
+		}
+
+		switch (opcode & (m0 | m1 | m2 | m3)) {
+		case 0b0011:
+			++reg16;
+			return 2;
+		case 0b1011:
+			--reg16;
+			return 2;
+		case 0b1001:
+			CPU_16bit_add(reg16);
+			return 2;
+		case 0b1000:
+
+			return 4;
+		}
 	}
 			 break;
-	case 0x01:
+	case 0b01:
 		if (m543 == 0b110) {
 			write_memory(m_registerHL.reg, yyy);
 			return 2;
@@ -92,7 +143,7 @@ int Emulator::execute_opcode(BYTE opcode) {
 			return 1;
 		}
 		break;
-	case 0x11:
+	case 0b11:
 		switch (opcode) {
 		case 0xFA: {
 			m_registerAF.hi = read_memory(get_nn());
@@ -138,6 +189,43 @@ int Emulator::execute_opcode(BYTE opcode) {
 			m_stack_pointer.reg = m_registerHL.reg;
 		}
 				 return 2;
+
+				 // 8 bit arithmetic
+		case 0xC6: {
+			CPU_8bit_add(m_registerAF.hi, 0, true, false);
+		}
+				 return 2;
+		case 0xCE: {
+			CPU_8bit_add(m_registerAF.hi, 0, true, true);
+		}
+				 return 2;
+		case 0xD6: {
+			CPU_8bit_sub(m_registerAF.hi, 0, true, false);
+		}
+				 return 2;
+		case 0xDE: {
+			CPU_8bit_sub(m_registerAF.hi, 0, true, true);
+		}
+				 return 2;
+		case 0xFE: {
+			CPU_8bit_cmp(m_registerAF.hi, 0, true);
+		}
+				 return 2;
+				 
+				 // 8 bit logic
+		case 0xE6: {
+			CPU_8bit_and(m_registerAF.hi, 0, true);
+		}
+				 return 2;
+		case 0xF6: {
+			CPU_8bit_or(m_registerAF.hi, 0, true);
+		}
+				 return 2;
+		case 0xEE: {
+			CPU_8bit_xor(m_registerAF.hi, 0, true);
+		}
+				 return 2;
+				 
 		}
 
 		if ((opcode & (m0 | m1 | m2 | m3)) == 0b101) {
@@ -154,7 +242,105 @@ int Emulator::execute_opcode(BYTE opcode) {
 			CPU_16bit_load();
 			return 3;
 		}
+		if (opcode == 0xE8) {
+			CPU_16bit_addSP();
+			return 4;
+		}
 		break;
+	case 0b10:
+		switch (m543) {
+		case 0:
+			switch (m210) {
+			case 0b110: {
+				BYTE data{ read_memory(m_registerHL.reg) };
+				CPU_8bit_add(m_registerAF.hi, data, false, false);
+			}
+					  return 2;
+			default:
+				CPU_8bit_add(m_registerAF.hi, yyy, false, false);
+				return 1;
+			}
+			break;
+		case 1:
+			switch (m210) {
+			case 0b110: {
+				BYTE data{ read_memory(m_registerHL.reg) };
+				CPU_8bit_add(m_registerAF.hi, data, false, true);
+			}
+					  return 2;
+			default:
+				CPU_8bit_add(m_registerAF.hi, yyy, false, true);
+				return 1;
+			}
+			break;
+		case 0b010:
+			switch (m210) {
+				// SUB A, [HL]	0b10010110/0x96
+			case 0b110: {
+				BYTE data{ read_memory(m_registerHL.reg) };
+				CPU_8bit_sub(m_registerAF.hi, data, false, false);
+			}
+					  return 2;
+				// SUB r	0b10010xxx/various
+			default: {
+				CPU_8bit_sub(m_registerAF.hi, yyy, false, false);
+			}
+				   return 1;
+			}
+			break;
+		case 0b011:
+			switch (m210) {
+				// SBC A, [HL]	0b10011110/0x9E
+			case 0b110: {
+				BYTE data{ read_memory(m_registerHL.reg) };
+				CPU_8bit_sub(m_registerAF.hi, data, false, true);
+			}
+					  return 2;
+				// SBC r	0b10011xxx/various
+			default: {
+				CPU_8bit_sub(m_registerAF.hi, yyy, false, true);
+			}
+				   return 1;
+			}
+			break;
+		case 0b111:
+			switch (m210) {
+			case 0b110: {
+				BYTE data{ read_memory(m_registerHL.reg) };
+				CPU_8bit_cmp(m_registerAF.hi, data, false);
+			}
+					  return 2;
+			default: {
+				CPU_8bit_cmp(m_registerAF.hi, yyy, false);
+			}
+				   return 1;
+			}
+			break;
+		case 0b100:
+			if (m210 == 0b110) {
+				BYTE to_and{ read_memory(m_registerHL.reg) };
+				CPU_8bit_and(m_registerAF.hi, to_and, false);
+				return 2;
+			}
+			CPU_8bit_and(m_registerAF.hi, yyy, 0);
+			return 1;
+		case 0b110:
+			if (m210 == 0b110) {
+				BYTE to_or{ read_memory(m_registerHL.reg) };
+				CPU_8bit_or(m_registerAF.hi, to_or, false);
+				return 2;
+			}
+			CPU_8bit_or(m_registerAF.hi, yyy, 0);
+			return 1;
+		case 0b101:
+			if (m210 == 0b110) {
+				BYTE to_xor{ read_memory(m_registerHL.reg) };
+				CPU_8bit_xor(m_registerAF.hi, to_xor, false);
+				return 2;
+			}
+			CPU_8bit_xor(m_registerAF.hi, yyy, 0);
+			return 1;
+		}
 	default:
 		std::cerr << "Unknown opcode: " << std::hex << opcode << '\n';
 		assert(false);

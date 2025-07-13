@@ -112,8 +112,14 @@ private:
 	void CPU_8bit_load(BYTE& reg);
 	void CPU_8bit_add(BYTE& reg, BYTE to_add,
 		bool use_immediate, bool add_carry);
+	void CPU_8bit_inc(BYTE& what);
+	void CPU_8bit_incHL();
 	void CPU_8bit_sub(BYTE& reg, BYTE subtracting,
 		bool use_immediate, bool sub_carry);
+	void CPU_8bit_cmp(BYTE reg, BYTE to_add,
+		bool use_immediate);
+	void CPU_8bit_dec(BYTE& reg);
+	void CPU_8bit_decHL();
 	void CPU_8bit_xor(BYTE& reg, BYTE to_xor,
 		bool use_immediate);
 	void CPU_8bit_and(BYTE& reg, BYTE to_and,
@@ -124,7 +130,11 @@ private:
 	void CPU_jump_nn(bool use_condition, int flag, bool condition);
 	void CPU_call(bool use_condition, int flag, bool condition);
 	void CPU_return(bool use_condition, int flag, bool condition);
+	void CPU_DAA();
+	// For 0xF8 opcode
 	void CPU_16bit_load();
+	void CPU_16bit_add(WORD regis);
+	void CPU_16bit_addSP();
 
 	void request_interupt(int id);
 	void do_interupts();
