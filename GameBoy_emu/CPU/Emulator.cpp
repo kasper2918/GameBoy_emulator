@@ -29,6 +29,10 @@ int Emulator::execute_opcode(BYTE opcode) {
 
 	switch ((opcode & (m7 | m6)) >> 6) {
 	case 0b00: {
+		if (opcode == 0) {
+			return 1;
+		}
+		
 		BYTE m_last5(opcode & (m0 | m1 | m2 | m3 | m4 | m5));
 
 		std::array<std::reference_wrapper<WORD>, 4> regs16{
@@ -111,6 +115,40 @@ int Emulator::execute_opcode(BYTE opcode) {
 			m_registerAF.lo |= 1 << FLAG_N;
 			m_registerAF.lo |= 1 << FLAG_H;
 			return 1;
+		case 0x08:
+			WORD nn = get_nn();
+			write_memory(nn++, m_stack_pointer.lo);
+			write_memory(nn, m_stack_pointer.lo);
+			return 5;
+
+			// Rotate
+		case 0x07:
+			m_registerAF.hi = CPU_RLC(m_registerAF.hi, true);
+			return 1;
+		case 0x0F:
+			m_registerAF.hi = CPU_RRC(m_registerAF.hi, true);
+			return 1;
+		case 0x17:
+			m_registerAF.hi = CPU_RL(m_registerAF.hi, true);
+			return 1;
+		case 0x1F:
+			m_registerAF.hi = CPU_RR(m_registerAF.hi, true);
+			return 1;
+
+			// unconditional immediate (e/n) jump
+		case 0x18:
+			CPU_jump_immediate(false, 0, false);
+			return 3;
+
+			// conditional immediate (e/n) jumps
+		case 0x20:
+			return CPU_jump_immediate(true, FLAG_Z, false) ? 3 : 2;
+		case 0x28:
+			return CPU_jump_immediate(true, FLAG_Z, true) ? 3 : 2;
+		case 0x30:
+			return CPU_jump_immediate(true, FLAG_C, false) ? 3 : 2;
+		case 0x38:
+			return CPU_jump_immediate(true, FLAG_C, true) ? 3 : 2;
 		}
 
 		switch (opcode & (m0 | m1 | m2 | m3)) {
@@ -123,13 +161,19 @@ int Emulator::execute_opcode(BYTE opcode) {
 		case 0b1001:
 			CPU_16bit_add(reg16);
 			return 2;
-		case 0b1000:
+		}
 
-			return 4;
+		if (opcode == 0x10) {
+			++m_program_counter;
+			return 0;
 		}
 	}
 			 break;
 	case 0b01:
+		if (opcode == 0x76) {
+			m_halted = true;
+			return 0;
+		}
 		if (m543 == 0b110) {
 			write_memory(m_registerHL.reg, yyy);
 			return 2;
@@ -211,7 +255,7 @@ int Emulator::execute_opcode(BYTE opcode) {
 			CPU_8bit_cmp(m_registerAF.hi, 0, true);
 		}
 				 return 2;
-				 
+
 				 // 8 bit logic
 		case 0xE6: {
 			CPU_8bit_and(m_registerAF.hi, 0, true);
@@ -225,7 +269,82 @@ int Emulator::execute_opcode(BYTE opcode) {
 			CPU_8bit_xor(m_registerAF.hi, 0, true);
 		}
 				 return 2;
-				 
+		case 0xE8:
+			CPU_16bit_addSP();
+			return 4;
+		case 0xF8:
+			CPU_16bit_load();
+			return 3;
+
+			// CB prefix
+		case 0xCB:
+			return execute_extended_opcode();
+
+			// jumps (control flow)
+			// 2 unconditional jumps
+		case 0xC3:
+			CPU_jump_nn(false, 0, false);
+			return 4;
+		case 0xE9:
+			m_program_counter = m_registerHL.reg;
+			return 1;
+
+			// conditional nn jumps
+		case 0xC2:
+			return CPU_jump_nn(true, FLAG_Z, false) ? 4 : 3;
+		case 0xCA:
+			return CPU_jump_nn(true, FLAG_Z, true) ? 4 : 3;
+		case 0xD2:
+			return CPU_jump_nn(true, FLAG_C, false) ? 4 : 3;
+		case 0xDA:
+			return CPU_jump_nn(true, FLAG_C, true) ? 4 : 3;
+
+			// unconditional call
+		case 0xCD:
+			CPU_call(false, 0, false);
+			return 6;
+
+			// conditional calls
+		case 0xC4:
+			return CPU_call(true, FLAG_Z, false) ? 6 : 3;
+		case 0xCC:
+			return CPU_call(true, FLAG_Z, true) ? 6 : 3;
+		case 0xD4:
+			return CPU_call(true, FLAG_C, false) ? 6 : 3;
+		case 0xDC:
+			return CPU_call(true, FLAG_C, true) ? 6 : 3;
+
+			// unconditional return from a function
+		case 0xC9:
+			CPU_return(false, 0, false);
+			return 4;
+
+			// conditional returns from a function
+		case 0xC0:
+			return CPU_return(true, FLAG_Z, false) ? 5 : 2;
+		case 0xC8:
+			return CPU_return(true, FLAG_Z, true) ? 5 : 2;
+		case 0xD0:
+			return CPU_return(true, FLAG_C, false) ? 5 : 2;
+		case 0xD8:
+			return CPU_return(true, FLAG_C, true) ? 5 : 2;
+
+			// RETI: Return from interrupt handler
+			// Unconditional return from a function. 
+			// Also enables interrupts by setting IME=1 (Interrupt Master Enable)
+		case 0xD9:
+			CPU_return(false, 0, false);
+			m_interupt_master = true;
+			return 4;
+
+			// DI: disable interrupts
+		case 0xF3:
+			m_interupt_master = false;
+			m_pending_interrupt_disabled = true;
+			return 1;
+		case 0xFB:
+			m_pending_interrupt_enabled = true;
+			return 1;
 		}
 
 		if ((opcode & (m0 | m1 | m2 | m3)) == 0b101) {
@@ -233,18 +352,21 @@ int Emulator::execute_opcode(BYTE opcode) {
 			push_word_onto_stack(xx);
 			return 4;
 		}
+		// possible bug
+		if ((opcode & (m0 | m1 | m2)) == 0b111) {
+			std::array<BYTE, 8> rst{
+				0x00, 0x08, 0x10, 0x18, 0x20, 0x28, 0x30, 0x38
+			};
+			
+			auto vec{ rst[m543] };
+			push_word_onto_stack(m_program_counter);
+			m_program_counter = unsigned16(vec, 0x00);
+			return 4;
+		}
 		if (opcode & 1) {
 			WORD& xx{ m_registers16[(opcode & (m5 | m4)) >> 4].get() };
 			xx = pop_word_off_stack();
 			return 3;
-		}
-		if (opcode == 0xF8) {
-			CPU_16bit_load();
-			return 3;
-		}
-		if (opcode == 0xE8) {
-			CPU_16bit_addSP();
-			return 4;
 		}
 		break;
 	case 0b10:
@@ -281,7 +403,7 @@ int Emulator::execute_opcode(BYTE opcode) {
 				CPU_8bit_sub(m_registerAF.hi, data, false, false);
 			}
 					  return 2;
-				// SUB r	0b10010xxx/various
+					  // SUB r	0b10010xxx/various
 			default: {
 				CPU_8bit_sub(m_registerAF.hi, yyy, false, false);
 			}
@@ -296,7 +418,7 @@ int Emulator::execute_opcode(BYTE opcode) {
 				CPU_8bit_sub(m_registerAF.hi, data, false, true);
 			}
 					  return 2;
-				// SBC r	0b10011xxx/various
+					  // SBC r	0b10011xxx/various
 			default: {
 				CPU_8bit_sub(m_registerAF.hi, yyy, false, true);
 			}
@@ -341,8 +463,9 @@ int Emulator::execute_opcode(BYTE opcode) {
 			CPU_8bit_xor(m_registerAF.hi, yyy, 0);
 			return 1;
 		}
+		break;
 	default:
-		std::cerr << "Unknown opcode: " << std::hex << opcode << '\n';
+		std::cerr << "Unknown opcode: 0x" << std::hex << opcode << '\n';
 		assert(false);
 		break;
 	}
@@ -350,3 +473,118 @@ int Emulator::execute_opcode(BYTE opcode) {
 	return -1;
 }
 
+int Emulator::execute_extended_opcode() {
+	BYTE opcode = read_memory(m_program_counter++);
+
+	int m0{ 0b00000001 };
+	int m1{ 0b00000010 };
+	int m2{ 0b00000100 };
+	int m3{ 0b00001000 };
+	int m4{ 0b00010000 };
+	int m5{ 0b00100000 };
+	int m6{ 0b01000000 };
+	int m7{ 0b10000000 };
+
+	BYTE m543((opcode & (m5 | m4 | m3)) >> 3);
+	BYTE m210((opcode & (m2 | m1 | m0)));
+
+	// BYTE& xxx{ m_registers[m543].get() };
+	BYTE& yyy{ m_registers[m210].get() };
+
+	switch (opcode & (m7 | m6) >> 6) {
+	case 0b00:
+		BYTE dataHL{ read_memory(m_registerHL.reg) };
+		switch (opcode) {
+		case 0x06: {
+			write_memory(m_registerHL.reg, CPU_RLC(dataHL, false));
+		}
+				 return 4;
+		case 0x0E: {
+			write_memory(m_registerHL.reg, CPU_RRC(dataHL, false));
+		}
+				 return 4;
+		case 0x16: {
+			write_memory(m_registerHL.reg, CPU_RL(dataHL, false));
+		}
+				 return 4;
+		case 0x1E: {
+			write_memory(m_registerHL.reg, CPU_RR(dataHL, false));
+		}
+				 return 4;
+		case 0x2E: {
+			write_memory(m_registerHL.reg, CPU_SRA(dataHL, true));
+		}
+				 return 4;
+		case 0x36: {
+			write_memory(m_registerHL.reg, CPU_swap(dataHL));
+		}
+				 return 4;
+		case 0x3E: {
+			write_memory(m_registerHL.reg, CPU_SRL(dataHL));
+		}
+				 return 4;
+		}
+
+		switch (m543) {
+		case 0b000: {
+			yyy = CPU_RLC(yyy, false);
+		}
+				  return 2;
+		case 0b001: {
+			yyy = CPU_RRC(yyy, false);
+		}
+				  return 2;
+		case 0b010: {
+			yyy = CPU_RL(yyy, false);
+		}
+				  return 2;
+		case 0b011: {
+			yyy = CPU_RR(yyy, false);
+		}
+				  return 2;
+		case 0b100: {
+			yyy = CPU_SLA(yyy);
+		}
+				  return 2;
+		case 0b101: {
+			yyy = CPU_SRA(yyy, false);
+		}
+				  return 2;
+		case 110: {
+			yyy = CPU_swap(yyy);
+		}
+				return 2;
+		case 111: {
+			yyy = CPU_SRL(yyy);
+		}
+				return 2;
+		}
+	case 0b01:
+		if (m210 == 0b110) {
+			CPU_bit(dataHL, m543);
+			return 3;
+		}
+		CPU_bit(yyy, m543);
+		return 2;
+	case 0b10:
+		if (m210 == 0b110) {
+			write_memory(m_registerHL.reg, dataHL & ~(1 << m543));
+			return 4;
+		}
+		yyy &= ~(1 << m543);
+		return 2;
+	case 0b11:				
+		if (m210 == 0b110) {
+			write_memory(m_registerHL.reg, dataHL | (1 << m543));
+			return 4;
+		}
+		yyy |= 1 << m543;
+		return 2;
+	default:
+		std::cerr << "Unknown opcode: 0xCB" << std::hex << opcode << '\n';
+		assert(false);
+		break;
+	}
+
+	return -1;
+}

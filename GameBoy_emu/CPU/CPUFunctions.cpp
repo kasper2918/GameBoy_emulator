@@ -234,7 +234,7 @@ void Emulator::CPU_8bit_or(BYTE& reg, BYTE to_or,
 		m_registerAF.lo |= 1 << FLAG_Z;
 }
 
-void Emulator::CPU_jump_immediate(bool use_condition, int flag, bool condition) {
+bool Emulator::CPU_jump_immediate(bool use_condition, int flag, bool condition) {
 	SIGNED_BYTE n{ static_cast<SIGNED_BYTE>(read_memory(m_program_counter)) };
 
 	if (!use_condition)
@@ -244,35 +244,48 @@ void Emulator::CPU_jump_immediate(bool use_condition, int flag, bool condition) 
 	else if ((m_registerAF.lo & (1 << flag)) == condition)
 	{
 		m_program_counter += n;
+		return true;
 	}
 
 	m_program_counter++;
+
+	return false;
 }
 
-void Emulator::CPU_jump_nn(bool use_condition, int flag, bool condition) {
+bool Emulator::CPU_jump_nn(bool use_condition, int flag, bool condition) {
 	WORD nn((read_memory(m_program_counter + 1) << 8) | read_memory(m_program_counter));
 	m_program_counter += 2;
 
 	if (!use_condition)
 		m_program_counter = nn;
-	else if ((m_registerAF.lo & (1 << flag)) == condition)
+	else if ((m_registerAF.lo & (1 << flag)) == condition) {
 		m_program_counter = nn;
+		return true;
+	}
+	
+	return false;
 }
 
-void Emulator::CPU_call(bool use_condition, int flag, bool condition) {
+bool Emulator::CPU_call(bool use_condition, int flag, bool condition) {
 	WORD nn((read_memory(m_program_counter + 1) << 8) | read_memory(m_program_counter));
 	m_program_counter += 2;
 
 	if (!use_condition || (use_condition && (m_registerAF.lo & (1 << flag)) == condition)) {
 		push_word_onto_stack(m_program_counter);
 		m_program_counter = nn;
+		return true;
 	}
+
+	return false;
 }
 
-void Emulator::CPU_return(bool use_condition, int flag, bool condition) {
+bool Emulator::CPU_return(bool use_condition, int flag, bool condition) {
 	if (!use_condition || (use_condition && (m_registerAF.lo & (1 << flag)) == condition)) {
 		m_program_counter = pop_word_off_stack();
+		return true;
 	}
+
+	return false;
 }
 
 // STOLEN FROM GUY WHO ALSO STOLE IT
@@ -380,4 +393,116 @@ void Emulator::CPU_16bit_addSP() {
 	}
 
 	m_stack_pointer.reg += e;
+}
+
+BYTE Emulator::CPU_RLC(BYTE data, bool isA) {
+	m_registerAF.lo = 0;
+
+	auto bit7{ (data & 0x80) >> 7 };
+	m_registerAF.lo |= bit7 << FLAG_C;
+	data = bit7 | (data << 1);
+
+	if (!isA && data == 0)
+		m_registerAF.lo |= 1 << FLAG_Z;
+
+	return data;
+}
+
+// possible bug
+BYTE Emulator::CPU_RRC(BYTE data, bool isA) {
+	m_registerAF.lo = 0;
+
+	auto bit0{ data & 1 };
+	m_registerAF.lo |= bit0 << FLAG_C;
+	data = (bit0 << 7) | (data >> 1);
+
+	if (!isA && data == 0)
+		m_registerAF.lo |= 1 << FLAG_Z;
+
+	return data;
+}
+
+BYTE Emulator::CPU_RL(BYTE data, bool isA) {
+	m_registerAF.lo = 0;
+
+	auto bit7{ (data & 0x80) >> 7 };
+	data = (data << 1) | ((m_registerAF.lo & (1 << FLAG_C)) >> FLAG_C);
+	m_registerAF.lo |= bit7 << FLAG_C;
+
+	if (!isA && data == 0)
+		m_registerAF.lo |= 1 << FLAG_Z;
+
+	return data;
+}
+
+BYTE Emulator::CPU_RR(BYTE data, bool isA) {
+	m_registerAF.lo = 0;
+
+	auto bit0{ data & 1 };
+	data = (data >> 1) | ((m_registerAF.lo & (1 << FLAG_C)) << (7 - FLAG_C));
+	m_registerAF.lo |= bit0 << FLAG_C;
+
+	if (!isA && data == 0)
+		m_registerAF.lo |= 1 << FLAG_Z;
+
+	return data;
+}
+
+BYTE Emulator::CPU_SLA(BYTE data) {
+	m_registerAF.lo = 0;
+
+	auto bit7{ (data & 0x80) >> 7 };
+	m_registerAF.lo |= bit7 << FLAG_C;
+	data <<= 1;
+
+	if (data == 0)
+		m_registerAF.lo |= 1 << FLAG_Z;
+
+	return data;
+}
+
+// possible bug
+BYTE Emulator::CPU_SRA(BYTE data, bool isHL) {
+	m_registerAF.lo = 0;
+
+	auto bit0{ data & 1 };
+	auto bit7{ data & 0x80 };
+	m_registerAF.lo |= bit0 << FLAG_C;
+	data >>= 1;
+	if (!isHL)
+		data |= bit7;
+
+	if (data == 0)
+		m_registerAF.lo |= 1 << FLAG_Z;
+
+	return data;
+}
+
+BYTE Emulator::CPU_swap(BYTE data) {
+	BYTE lo{ data & 0x0F };
+	BYTE hi{ data & 0xF0 };
+	data = lo << 4 & hi >> 4;
+
+	m_registerAF.lo = 0;
+	if (data == 0)
+		m_registerAF.lo |= 1 << FLAG_Z;
+}
+
+BYTE Emulator::CPU_SRL(BYTE data) {
+	m_registerAF.lo = 0;
+
+	auto bit0{ data & 1 };
+	m_registerAF.lo |= bit0 << FLAG_C;
+	data >>= 1;
+
+	if (data == 0)
+		m_registerAF.lo |= 1 << FLAG_Z;
+
+	return data;
+}
+
+void Emulator::CPU_bit(BYTE data, BYTE bit) {
+	m_registerAF.lo = ((data & (1 << bit)) >> bit) << FLAG_Z;
+	m_registerAF.lo |= 1 << FLAG_H;
+	m_registerAF.lo &= ~(1 << FLAG_N);
 }

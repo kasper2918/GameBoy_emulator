@@ -7,10 +7,10 @@
 #include <array>
 #include <unordered_map>
 
-#ifndef NDEBUG
+#ifndef MY_NGTEST
 #include <gtest/gtest.h>
 #include <gtest/gtest_prod.h>
-#endif // !NDEBUG
+#endif // !MY_NGTEST
 
 class Emulator {
 public:
@@ -24,10 +24,11 @@ public:
 	Emulator& operator=(const Emulator&) = delete;
 	Emulator(const Emulator&&) = delete;
 	Emulator& operator=(const Emulator&&) = delete;
-#ifndef NDEBUG
+#ifndef MY_NGTEST
 	FRIEND_TEST(EmulatorTest, MemoryTest);
 	FRIEND_TEST(EmulatorTest, CPUTest);
-#endif // !NDEBUG
+	FRIEND_TEST(EmulatorTest, Rotates);
+#endif // !MY_NGTEST
 
 private:
 	std::unique_ptr<BYTE[]> m_cartridge_memory{ std::make_unique<BYTE[]>(0x200000) };
@@ -105,8 +106,14 @@ private:
 
 	BYTE m_joypad_state{ 0xFF }; // possible bug
 
+	bool m_halted{};
+
+	bool m_pending_interrupt_disabled{}; // possible bug
+	bool m_pending_interrupt_enabled{};
+
 	int execute_next_opcode();
 	int execute_opcode(BYTE opcode);
+	int execute_extended_opcode();
 
 	//CPUFunctions.cpp
 	void CPU_8bit_load(BYTE& reg);
@@ -126,18 +133,30 @@ private:
 		bool use_immediate);
 	void CPU_8bit_or(BYTE& reg, BYTE to_or,
 		bool use_immediate);
-	void CPU_jump_immediate(bool use_condition, int flag, bool condition);
-	void CPU_jump_nn(bool use_condition, int flag, bool condition);
-	void CPU_call(bool use_condition, int flag, bool condition);
-	void CPU_return(bool use_condition, int flag, bool condition);
+	bool CPU_jump_immediate(bool use_condition, int flag, bool condition);
+	bool CPU_jump_nn(bool use_condition, int flag, bool condition);
+	bool CPU_call(bool use_condition, int flag, bool condition);
+	bool CPU_return(bool use_condition, int flag, bool condition);
 	void CPU_DAA();
 	// For 0xF8 opcode
 	void CPU_16bit_load();
 	void CPU_16bit_add(WORD regis);
 	void CPU_16bit_addSP();
+	// Rotate
+	BYTE CPU_RLC(BYTE data, bool isA);
+	BYTE CPU_RRC(BYTE data, bool isA);
+	BYTE CPU_RL(BYTE data, bool isA);
+	BYTE CPU_RR(BYTE data, bool isA);
+	// Shift
+	BYTE CPU_SLA(BYTE data);
+	BYTE CPU_SRA(BYTE data, bool isHL);
+	BYTE CPU_swap(BYTE data);
+	BYTE CPU_SRL(BYTE data);
+	void CPU_bit(BYTE data, BYTE bit);
+
 
 	void request_interupt(int id);
-	void do_interupts();
+	void do_interrupts();
 	void service_interupt(int interupt);
 
 	void update_timers(int cycles);

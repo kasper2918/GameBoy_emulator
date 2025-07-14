@@ -28,7 +28,11 @@ add_subdirectory(vendor/SDL EXCLUDE_FROM_ALL)
 
 target_link_libraries(GameBoy_emu PRIVATE SDL3::SDL3)
 
+add_definitions(MY_NGTEST)
+
 if (EXISTS vendor/googletest-1.17.0)
+	remove_definitions(MY_NGTEST)
+
 	# For Windows: Prevent overriding the parent project's compiler/linker settings
 	set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 	add_subdirectory(vendor/googletest-1.17.0)

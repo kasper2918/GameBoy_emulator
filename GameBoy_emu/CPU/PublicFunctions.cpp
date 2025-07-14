@@ -13,7 +13,7 @@ void Emulator::update() {
 		cycles_this_update += cycles;
 		update_timers(cycles);
 		update_graphics(cycles);
-		do_interupts();
+		do_interrupts();
 	}
 
 	// TODO: add rendering

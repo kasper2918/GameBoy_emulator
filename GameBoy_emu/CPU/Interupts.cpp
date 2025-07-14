@@ -6,7 +6,7 @@ void Emulator::request_interupt(int id) {
     write_memory(0xFF0F, req);
 }
 
-void Emulator::do_interupts() {
+void Emulator::do_interrupts() {
     if (m_interupt_master == true)
     {
         BYTE req = read_memory(0xFF0F);

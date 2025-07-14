@@ -62,6 +62,17 @@ TEST_F(EmulatorTest, CPUTest) {
 	EXPECT_EQ(emu->m_registerAF.hi, 237);
 }
 
+TEST_F(EmulatorTest, Rotates) {
+	BYTE data{ 0b10010111 };
+	data = emu->CPU_RLC(data, false);
+	EXPECT_EQ(data, 0b101111);
+	BYTE F{ emu->m_registerAF.lo };
+	EXPECT_TRUE(F & (1 << emu->FLAG_C));
+	EXPECT_FALSE(F & (1 << emu->FLAG_Z));
+	EXPECT_FALSE(F & (1 << emu->FLAG_H));
+	EXPECT_FALSE(F & (1 << emu->FLAG_N));
+}
+
 int main(int argc, char** argv)
 {
 	::testing::InitGoogleTest(&argc, argv);
