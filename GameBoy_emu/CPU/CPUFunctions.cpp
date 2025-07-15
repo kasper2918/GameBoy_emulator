@@ -50,12 +50,16 @@ void Emulator::CPU_8bit_add(BYTE& reg, BYTE to_add,
 void Emulator::CPU_8bit_inc(BYTE& reg) {
 	if (reg + 1 == 0)
 		m_registerAF.lo |= 1 << FLAG_Z;
+	else
+		m_registerAF.lo &= ~(1 << FLAG_Z);
 
 	WORD htest = (reg & 0xF);
 	++htest;
 
 	if (htest > 0xF)
 		m_registerAF.lo |= 1 << FLAG_H;
+	else
+		m_registerAF.lo &= ~(1 << FLAG_H);
 
 	m_registerAF.lo &= ~(1 << FLAG_N);
 
@@ -66,12 +70,16 @@ void Emulator::CPU_8bit_incHL() {
 	BYTE data{ read_memory(m_registerHL.reg) };
 	if (data + 1 == 0)
 		m_registerAF.lo |= 1 << FLAG_Z;
+	else
+		m_registerAF.lo &= ~(1 << FLAG_Z);
 
 	WORD htest = (data & 0xF);
 	++htest;
 
 	if (htest > 0xF)
 		m_registerAF.lo |= 1 << FLAG_H;
+	else
+		m_registerAF.lo &= ~(1 << FLAG_H);
 
 	m_registerAF.lo &= ~(1 << FLAG_N);
 
@@ -156,6 +164,8 @@ void Emulator::CPU_8bit_cmp(BYTE reg, BYTE subtracting,
 void Emulator::CPU_8bit_dec(BYTE& reg) {
 	if (reg - 1 == 0)
 		m_registerAF.lo |= 1 << FLAG_Z;
+	else
+		m_registerAF.lo &= ~(1 << FLAG_Z);
 
 	m_registerAF.lo |= 1 << FLAG_N;
 
@@ -164,6 +174,8 @@ void Emulator::CPU_8bit_dec(BYTE& reg) {
 
 	if (htest < 0)
 		m_registerAF.lo |= 1 << FLAG_H;
+	else
+		m_registerAF.lo &= ~(1 << FLAG_H);
 
 	--reg;
 }
@@ -173,6 +185,8 @@ void Emulator::CPU_8bit_decHL() {
 
 	if (data - 1 == 0)
 		m_registerAF.lo |= 1 << FLAG_Z;
+	else
+		m_registerAF.lo &= ~(1 << FLAG_Z);
 
 	m_registerAF.lo |= 1 << FLAG_N;
 
@@ -180,6 +194,8 @@ void Emulator::CPU_8bit_decHL() {
 	--htest;
 	if (htest < 0)
 		m_registerAF.lo |= 1 << FLAG_H;
+	else
+		m_registerAF.lo &= ~(1 << FLAG_H);
 
 	write_memory(m_registerHL.reg, ++data);
 }
@@ -235,7 +251,7 @@ void Emulator::CPU_8bit_or(BYTE& reg, BYTE to_or,
 }
 
 bool Emulator::CPU_jump_immediate(bool use_condition, int flag, bool condition) {
-	SIGNED_BYTE n{ static_cast<SIGNED_BYTE>(read_memory(m_program_counter)) };
+	SIGNED_BYTE n{ static_cast<SIGNED_BYTE>(read_memory(m_program_counter++)) };
 
 	if (!use_condition)
 	{
@@ -247,7 +263,6 @@ bool Emulator::CPU_jump_immediate(bool use_condition, int flag, bool condition) 
 		return true;
 	}
 
-	m_program_counter++;
 
 	return false;
 }
@@ -359,9 +374,13 @@ void Emulator::CPU_16bit_add(WORD regis) {
 	htest += (regis & 0xFFF);
 	if (htest > 0xFFF)
 		m_registerAF.lo |= 1 << FLAG_H;
+	else
+		m_registerAF.lo &= ~(1 << FLAG_H);
 
 	if ((m_registerHL.reg + regis) > 0xFFFF)
 		m_registerAF.lo |= 1 << FLAG_C;
+	else
+		m_registerAF.lo &= ~(1 << FLAG_C);
 	
 	m_registerAF.lo &= ~(1 << FLAG_N);
 
@@ -479,13 +498,15 @@ BYTE Emulator::CPU_SRA(BYTE data, bool isHL) {
 }
 
 BYTE Emulator::CPU_swap(BYTE data) {
-	BYTE lo{ data & 0x0F };
-	BYTE hi{ data & 0xF0 };
+	BYTE lo( data & 0x0F );
+	BYTE hi( data & 0xF0 );
 	data = lo << 4 & hi >> 4;
 
 	m_registerAF.lo = 0;
 	if (data == 0)
 		m_registerAF.lo |= 1 << FLAG_Z;
+
+	return data;
 }
 
 BYTE Emulator::CPU_SRL(BYTE data) {

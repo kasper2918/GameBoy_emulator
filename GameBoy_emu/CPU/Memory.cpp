@@ -63,8 +63,11 @@ void Emulator::write_memory(WORD address, BYTE data)
 		}
 	}
 
-	else if (address == 0xFF04)
+	// reset the divider register
+	else if (address == 0xFF04) {
 		m_rom[0xFF04] = 0;
+	}
+		
 
 	else if (address == 0xFF44)
 	{

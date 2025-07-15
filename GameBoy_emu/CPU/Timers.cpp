@@ -29,7 +29,7 @@ void Emulator::update_timers(int cycles) {
 }
 
 bool Emulator::is_clock_enabled() const {
-	return read_memory((TMC >> 2) & 1); // possible bug
+	return (read_memory(TMC) >> 2) & 1; // possible bug
 }
 
 BYTE Emulator::get_clock_freq() const {

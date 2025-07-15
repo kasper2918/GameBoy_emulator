@@ -41,7 +41,7 @@ void Emulator::draw_scan_line() {
 	BYTE control = read_memory(0xFF40);
 	if (control & 1)
 		render_tiles();
-	else
+	if (control & 0b10)
 		render_sprites();
 }
 
@@ -288,8 +288,6 @@ void Emulator::render_sprites() {
 	}
 }
 
-
-
 Emulator::COLOUR Emulator::get_colour(BYTE colour_num, WORD address) const {
 	COLOUR res = WHITE;
 	BYTE palette = read_memory(address);
@@ -359,7 +357,7 @@ void Emulator::set_LCD_status() {
 		{
 			mode = 2;
 			status |= 0b10;
-			status &= ~1u; // po
+			status &= ~1u; // possible bug
 			req_int = status & (1 << 5);
 		}
 		// mode 3

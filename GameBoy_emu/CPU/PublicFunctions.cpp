@@ -16,7 +16,6 @@ void Emulator::update() {
 		do_interrupts();
 	}
 
-	// TODO: add rendering
 }
 
 void Emulator::initialize() {
@@ -29,6 +28,11 @@ void Emulator::initialize() {
 
 	m_current_RAM_bank = 0;
 	std::fill(m_RAM_banks, m_RAM_banks + 0x8000, 0);
+
+	for (int x{ 0 }; x < 160; ++x)
+		for (int y{ 0 }; y < 144; ++y)
+			for (int z{ 0 }; z < 3; ++z)
+				m_screen_data[x][y][z] = 255;
 
 	m_rom[0xFF05] = 0x00;
 	m_rom[0xFF06] = 0x00;
@@ -68,10 +72,26 @@ void Emulator::initialize() {
 void Emulator::load_game(std::string_view path) {
 	std::fill(m_cartridge_memory.get(), m_cartridge_memory.get() + 0x200000, 0);
 	int i{};
-	for (std::ifstream file{ path.data(), std::ios::binary }; file.good(); )
+	for (std::ifstream file{ path.data(), std::ios::binary }; file.good() && i < 0x200000; )
 	{
-		file >> m_cartridge_memory[i++];
+		m_cartridge_memory[i++] = file.get();
 	}
+
+	/*memset(m_rom, 0, sizeof(m_rom));
+	memset(m_cartridge_memory.get(), 0, 0x200000);
+
+	FILE* in;
+	fopen_s(&in, path.data(), "rb");
+	if (in) {
+		fread(m_cartridge_memory.get(), 1, 0x200000, in);
+		fclose(in);
+	}
+	else {
+		assert(false && "Couldn't open file");
+	}
+	
+
+	memcpy(&m_rom[0x0], m_cartridge_memory.get(), 0x8000);*/
 
 	switch (m_cartridge_memory[0x147])
 	{
@@ -82,4 +102,6 @@ void Emulator::load_game(std::string_view path) {
 	case 6: m_MBC2 = true; break;
 	default: break;
 	}
+
+	std::copy_n(m_cartridge_memory.get(), 0x8000, m_rom);
 }

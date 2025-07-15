@@ -53,6 +53,19 @@ TEST_F(EmulatorTest, MemoryTest) {
 }
 
 TEST_F(EmulatorTest, CPUTest) {
+	int cycles;
+	WORD pc_copy;
+
+	WORD& pc{ emu->m_program_counter };
+	BYTE& A{ emu->m_registerAF.hi };
+	BYTE& F{ emu->m_registerAF.lo };
+	BYTE& B{ emu->m_registerBC.hi };
+	BYTE& C{ emu->m_registerBC.lo };
+	BYTE& D{ emu->m_registerDE.hi };
+	BYTE& E{ emu->m_registerDE.lo };
+
+	BYTE* rom{ emu->m_rom };
+	
 	BYTE n = emu->read_memory(emu->m_program_counter + 1);
 	emu->execute_opcode(0x06);
 	EXPECT_EQ(emu->m_registerBC.hi, n);
@@ -60,6 +73,18 @@ TEST_F(EmulatorTest, CPUTest) {
 	emu->m_registerDE.lo = 237;
 	emu->execute_opcode(0x7B);
 	EXPECT_EQ(emu->m_registerAF.hi, 237);
+
+	pc_copy = pc;
+	C = 213;
+	emu->execute_opcode(0x41);
+	EXPECT_EQ(B, 213);
+	EXPECT_EQ(pc_copy, pc);
+
+	pc_copy = pc;
+	rom[pc_copy] = 0x1E;
+	emu->execute_opcode(0x06);
+	EXPECT_EQ(B, 0x1E);
+	EXPECT_EQ(pc_copy, pc - 1);
 }
 
 TEST_F(EmulatorTest, Rotates) {

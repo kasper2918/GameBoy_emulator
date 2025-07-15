@@ -26,13 +26,13 @@ void Emulator::do_interrupts() {
 
 void Emulator::service_interupt(int interupt) {
     m_interupt_master = false;
+    m_halted = false;
     BYTE req = read_memory(0xFF0F);
     req &= ~(1 << interupt);
     write_memory(0xFF0F, req);
 
     /// we must save the current execution address by pushing it onto the stack
-    m_rom[m_stack_pointer.reg--] = m_program_counter & 0b11111111; // possible bug
-    m_rom[m_stack_pointer.reg--] = m_program_counter >> 8;
+    push_word_onto_stack(m_program_counter);
 
     switch (interupt)
     {

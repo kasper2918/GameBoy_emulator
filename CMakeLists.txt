@@ -18,6 +18,8 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/$<CONFIGURATION>")
 add_subdirectory ("vendor")
 add_subdirectory ("GameBoy_emu")
 
+include_directories(ROMS)
+
 add_executable (GameBoy_emu "GameBoy_emu/Main.cpp"  "GameBoy_emu/Types.h" "GameBoy_emu/CPU/Emulator.h" "GameBoy_emu/CPU/Emulator.cpp" "GameBoy_emu/CPU/PublicFunctions.cpp" "GameBoy_emu/CPU/Memory.cpp" "GameBoy_emu/CPU/Timers.cpp" "GameBoy_emu/CPU/Interupts.cpp" "GameBoy_emu/CPU/LCD.cpp" "GameBoy_emu/CPU/Misc.cpp" "GameBoy_emu/CPU/Joypad.cpp" "GameBoy_emu/CPU/CPUFunctions.cpp")
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)

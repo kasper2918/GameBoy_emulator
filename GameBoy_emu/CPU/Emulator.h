@@ -7,10 +7,13 @@
 #include <array>
 #include <unordered_map>
 
+
 #ifndef MY_NGTEST
 #include <gtest/gtest.h>
 #include <gtest/gtest_prod.h>
 #endif // !MY_NGTEST
+
+struct SDL_Renderer;
 
 class Emulator {
 public:
@@ -20,10 +23,16 @@ public:
 	void update();
 	void initialize();
 
+	void key_pressed(int key);
+	void key_released(int key);
+
 	Emulator(const Emulator&) = delete;
 	Emulator& operator=(const Emulator&) = delete;
 	Emulator(const Emulator&&) = delete;
 	Emulator& operator=(const Emulator&&) = delete;
+
+	friend void draw_graphics(SDL_Renderer*& renderer);
+
 #ifndef MY_NGTEST
 	FRIEND_TEST(EmulatorTest, MemoryTest);
 	FRIEND_TEST(EmulatorTest, CPUTest);
@@ -32,7 +41,7 @@ public:
 
 private:
 	std::unique_ptr<BYTE[]> m_cartridge_memory{ std::make_unique<BYTE[]>(0x200000) };
-	BYTE m_rom[0x10000];
+	BYTE m_rom[0x10000] = { 0 };
 	BYTE m_screen_data[160][144][3]{};
 
 	union Register {
@@ -108,7 +117,6 @@ private:
 
 	bool m_halted{};
 
-	bool m_pending_interrupt_disabled{}; // possible bug
 	bool m_pending_interrupt_enabled{};
 
 	int execute_next_opcode();
@@ -173,8 +181,6 @@ private:
 	COLOUR get_colour(BYTE colour_num, WORD address) const;
 	void render_sprites();
 
-	void key_pressed(int key);
-	void key_released(int key);
 	BYTE get_joypad_state() const;
 
 	// Misc.cpp
