@@ -1,0 +1,139 @@
+#pragma once
+
+#include <memory>
+#include <string_view>
+
+#ifndef MY_NGTEST
+#include <gtest/gtest.h>
+#endif // !MY_NGTEST
+
+using BYTE = uint8_t;
+using SIGNED_BYTE = int8_t;
+using WORD = uint16_t;
+using SIGNED_WORD = int16_t;
+
+class Emulator 
+{
+public:
+	// PublicFunctions.cpp
+	void Update();
+	void LoadGame(std::string_view path);
+	Emulator();
+	void KeyPressed(int key);
+	void KeyReleased(int key);
+
+#ifndef MY_NGTEST
+	FRIEND_TEST(EmulatorTest, Foo);
+#endif // !MY_NGTEST
+
+private:
+	std::unique_ptr<BYTE[]> m_CartridgeMemory{};
+	BYTE m_ScreenData[160][144][3] = { 255 };
+	BYTE m_Rom[0x10000] = {0};
+
+	union Register
+	{
+		WORD reg;
+		struct
+		{
+			BYTE lo;
+			BYTE hi;
+		};
+	};
+
+	Register m_RegisterAF{};
+	Register m_RegisterBC{};
+	Register m_RegisterDE{};
+	Register m_RegisterHL{};
+
+	BYTE& A{ m_RegisterAF.hi };
+	BYTE& F{ m_RegisterAF.lo };
+	BYTE& B{ m_RegisterBC.hi };
+	BYTE& C{ m_RegisterBC.lo };
+	BYTE& D{ m_RegisterDE.hi };
+	BYTE& E{ m_RegisterDE.lo };
+	BYTE& H{ m_RegisterHL.hi };
+	BYTE& L{ m_RegisterHL.lo };
+
+	const int FLAG_Z{ 7 };
+	const int FLAG_N{ 6 };
+	const int FLAG_H{ 5 };
+	const int FLAG_C{ 4 };
+
+	WORD m_ProgramCounter{};
+	Register m_StackPointer{};
+
+	int m_CurrentROMBank{ 1 };
+	BYTE m_RAMBanks[0x8000] = {0};
+	BYTE m_CurrentRAMBank{};
+
+	bool m_MBC1{};
+	bool m_MBC2{};
+	bool m_EnableRAM{}; // possible bug
+	bool m_RomBanking{ true };
+
+	const WORD TIMA{ 0xFF05 };
+	const WORD TMA{ 0xFF06 };
+	const WORD TMC{ 0xFF07 };
+
+	int m_TimerCounter{ 1024 };
+	int m_DividerCounter{ 0 };
+
+	bool m_InteruptMaster{};
+
+	int m_ScanlineCounter{ 456 };
+
+	BYTE m_JoypadState{ 0xFF };
+
+	enum COLOUR
+	{
+		WHITE,
+		LIGHT_GRAY,
+		DARK_GRAY,
+		BLACK,
+	};
+
+	// Memory.cpp
+	void WriteMemory(WORD address, BYTE data);
+	BYTE ReadMemory(WORD address) const;
+	void HandleBanking(WORD address, BYTE data);
+	void DoRAMBankEnable(WORD address, BYTE data);
+	void DoChangeLoROMBank(BYTE data);
+	void DoChangeHiRomBank(BYTE data);
+	void DoRAMBankChange(BYTE data);
+	void DoChangeROMRAMMode(BYTE data);
+
+	// Timers.cpp
+	void UpdateTimers(int cycles);
+	bool IsClockEnabled() const;
+	BYTE GetClockFreq() const;
+	void SetClockFreq();
+	void DoDividerRegister(int cycles);
+
+	// Interrupts.cpp
+	// I'm too lazy to fix the typo
+	void RequestInterupt(int id);
+	void DoInterupts();
+	void ServiceInterupt(int interupt);
+
+	// Misc/Utils.cpp
+	void PushWordOntoStack(WORD word);
+	WORD PopWordOffStack();
+
+	// LCD.cpp
+	void SetLCDStatus();
+	bool IsLCDEnabled() const;
+
+	// Misc/Misc.cpp
+	void DoDMATransfer(BYTE data);
+
+	// Graphics.cpp
+	void UpdateGraphics(int cycles);
+	void DrawScanLine();
+	void RenderTiles(BYTE lcdControl);
+	void RenderSprites(BYTE lcdControl);
+	COLOUR GetColour(BYTE colourNum, WORD address) const;
+
+	// Joypad.cpp
+	BYTE GetJoypadState() const;
+};
