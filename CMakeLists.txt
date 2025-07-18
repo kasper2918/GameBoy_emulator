@@ -20,7 +20,7 @@ add_subdirectory ("GameBoy_emu")
 
 include_directories(ROMS)
 
-add_executable (GameBoy_emu "GameBoy_emu/Main.cpp" "GameBoy_emu/Emulator/Emulator.cpp" "GameBoy_emu/Emulator/Emulator.h" "GameBoy_emu/Emulator/PublicFunctions.cpp" "GameBoy_emu/Emulator/Memory.cpp" "GameBoy_emu/Emulator/Misc/BitOps.h" "GameBoy_emu/Emulator/Timers.cpp" "GameBoy_emu/Emulator/Interrupts.cpp" "GameBoy_emu/Emulator/Misc/Utils.cpp" "GameBoy_emu/Emulator/LCD.cpp" "GameBoy_emu/Emulator/Misc/Misc.cpp" "GameBoy_emu/Emulator/Graphics.cpp" "GameBoy_emu/Emulator/Joypad.cpp")
+add_executable (GameBoy_emu "GameBoy_emu/Main.cpp" "GameBoy_emu/Emulator/Emulator.cpp" "GameBoy_emu/Emulator/Emulator.h" "GameBoy_emu/Emulator/PublicFunctions.cpp" "GameBoy_emu/Emulator/Memory.cpp" "GameBoy_emu/Emulator/Misc/BitOps.h" "GameBoy_emu/Emulator/Timers.cpp" "GameBoy_emu/Emulator/Interrupts.cpp" "GameBoy_emu/Emulator/Misc/Utils.cpp" "GameBoy_emu/Emulator/LCD.cpp" "GameBoy_emu/Emulator/Misc/Misc.cpp" "GameBoy_emu/Emulator/Graphics.cpp" "GameBoy_emu/Emulator/Joypad.cpp" "GameBoy_emu/Emulator/CPUFunctions.cpp")
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
   set_property(TARGET GameBoy_emu PROPERTY CXX_STANDARD 20)
@@ -45,7 +45,7 @@ if (EXISTS vendor/googletest-1.17.0)
 	add_executable(
 	  hello_test
 	  "GameBoy_emu/UnitTests.cpp"
-	   "GameBoy_emu/Emulator/Emulator.cpp" "GameBoy_emu/Emulator/Emulator.h" "GameBoy_emu/Emulator/PublicFunctions.cpp" "GameBoy_emu/Emulator/Memory.cpp" "GameBoy_emu/Emulator/Misc/BitOps.h" "GameBoy_emu/Emulator/Timers.cpp" "GameBoy_emu/Emulator/Interrupts.cpp" "GameBoy_emu/Emulator/Misc/Utils.cpp" "GameBoy_emu/Emulator/LCD.cpp" "GameBoy_emu/Emulator/Misc/Misc.cpp" "GameBoy_emu/Emulator/Graphics.cpp" "GameBoy_emu/Emulator/Joypad.cpp")
+	   "GameBoy_emu/Emulator/Emulator.cpp" "GameBoy_emu/Emulator/Emulator.h" "GameBoy_emu/Emulator/PublicFunctions.cpp" "GameBoy_emu/Emulator/Memory.cpp" "GameBoy_emu/Emulator/Misc/BitOps.h" "GameBoy_emu/Emulator/Timers.cpp" "GameBoy_emu/Emulator/Interrupts.cpp" "GameBoy_emu/Emulator/Misc/Utils.cpp" "GameBoy_emu/Emulator/LCD.cpp" "GameBoy_emu/Emulator/Misc/Misc.cpp" "GameBoy_emu/Emulator/Graphics.cpp" "GameBoy_emu/Emulator/Joypad.cpp" "GameBoy_emu/Emulator/CPUFunctions.cpp")
 	set_property(TARGET hello_test PROPERTY CXX_STANDARD 23)
 	target_link_libraries(
 	  hello_test

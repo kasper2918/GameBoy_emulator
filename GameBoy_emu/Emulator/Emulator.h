@@ -2,6 +2,8 @@
 
 #include <memory>
 #include <string_view>
+#include <array>
+#include <utility>
 
 #ifndef MY_NGTEST
 #include <gtest/gtest.h>
@@ -24,6 +26,7 @@ public:
 
 #ifndef MY_NGTEST
 	FRIEND_TEST(EmulatorTest, Foo);
+	FRIEND_TEST(EmulatorTest, CPUTest);
 #endif // !MY_NGTEST
 
 private:
@@ -45,6 +48,8 @@ private:
 	Register m_RegisterBC{};
 	Register m_RegisterDE{};
 	Register m_RegisterHL{};
+	WORD m_ProgramCounter{};
+	Register m_StackPointer{};
 
 	BYTE& A{ m_RegisterAF.hi };
 	BYTE& F{ m_RegisterAF.lo };
@@ -55,13 +60,34 @@ private:
 	BYTE& H{ m_RegisterHL.hi };
 	BYTE& L{ m_RegisterHL.lo };
 
+	WORD& AF{ m_RegisterAF.reg };
+	WORD& BC{ m_RegisterBC.reg };
+	WORD& DE{ m_RegisterDE.reg };
+	WORD& HL{ m_RegisterHL.reg };
+	WORD& PC{ m_ProgramCounter };
+	WORD& SP{ m_StackPointer.reg };
+	
+	std::array<std::reference_wrapper<BYTE>, 8> m_Regs{
+		B, // 0 = 000
+		C, // 1 = 001
+		D, // 2 = 010
+		E, // 3 = 011
+		H, // 4 = 100
+		L, // 5 = 101
+		L, // 6 = 110
+		A, // 7 = 111
+	};
+	std::array<std::reference_wrapper<WORD>, 4> m_Regs16{
+		BC,
+		DE,
+		HL,
+		SP,
+	};
+
 	const int FLAG_Z{ 7 };
 	const int FLAG_N{ 6 };
 	const int FLAG_H{ 5 };
 	const int FLAG_C{ 4 };
-
-	WORD m_ProgramCounter{};
-	Register m_StackPointer{};
 
 	int m_CurrentROMBank{ 1 };
 	BYTE m_RAMBanks[0x8000] = {0};
@@ -80,6 +106,9 @@ private:
 	int m_DividerCounter{ 0 };
 
 	bool m_InteruptMaster{};
+	bool m_PendingInteruptDisabled{};
+	bool m_PendingInteruptEnabled{};
+	bool m_Halted{};
 
 	int m_ScanlineCounter{ 456 };
 
@@ -126,6 +155,7 @@ private:
 
 	// Misc/Misc.cpp
 	void DoDMATransfer(BYTE data);
+	WORD get_nn();
 
 	// Graphics.cpp
 	void UpdateGraphics(int cycles);
@@ -136,4 +166,16 @@ private:
 
 	// Joypad.cpp
 	BYTE GetJoypadState() const;
+
+	// Emulator.cpp
+	int ExecuteNextOpcode();
+	int ExecuteOpcode(BYTE opcode);
+
+	// CPUFunctions.cpp
+	void CPU_8BIT_LOAD(BYTE& reg);
+	void CPU_8BIT_ADD(BYTE& reg, BYTE toAdd,
+		bool useImmediate, bool addCarry);
+	// For LD HL, SP+e8
+	void CPU_16BIT_LOAD();
+
 };

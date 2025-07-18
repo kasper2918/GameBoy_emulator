@@ -8,3 +8,10 @@ void Emulator::DoDMATransfer(BYTE data)
         WriteMemory(0xFE00 + i, ReadMemory(address + i));
     }
 }
+
+WORD Emulator::get_nn()
+{
+    WORD nn = ReadMemory(PC++);
+    nn |= ReadMemory(PC++) << 8;
+    return nn;
+}
