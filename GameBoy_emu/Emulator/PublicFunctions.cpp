@@ -5,7 +5,7 @@
 
 void Emulator::Update()
 {
-    constexpr int MAXCYCLES{ 69905 };
+    constexpr int MAXCYCLES{ 69905 * 4 };
     int cyclesThisUpdate = 0;
 
     while (cyclesThisUpdate < MAXCYCLES)

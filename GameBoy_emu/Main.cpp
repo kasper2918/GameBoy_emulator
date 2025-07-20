@@ -2,6 +2,7 @@
 #include <SDL3/SDL_main.h>
 
 #include "Emulator/Emulator.h"
+#include <iostream>
 
 constexpr int WIDTH_MULT{ 4 };
 constexpr int HEIGHT_MULT{ 3 };
@@ -80,9 +81,13 @@ int main(int argc, char* argv[])
 		return 3;
 	}
 
-	emu.LoadGame("ROMS/rom.gb");
+	if (argc < 2) {
+		std::cout << "Usage: .\\GameBoy_emu.exe [rom_path]";
+		return 1;
+	}
+	emu.LoadGame(argv[1]);
 
-	constexpr double fps{ 59.73 };
+	constexpr double fps{ 60 };
 	constexpr double interval{ 1000 / fps };
 
 	Uint64 time2{ SDL_GetTicks() };
