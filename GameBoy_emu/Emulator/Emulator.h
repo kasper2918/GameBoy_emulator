@@ -7,12 +7,15 @@
 
 #ifndef MY_NGTEST
 #include <gtest/gtest.h>
+#include <map>
 #endif // !MY_NGTEST
 
 using BYTE = uint8_t;
 using SIGNED_BYTE = int8_t;
 using WORD = uint16_t;
 using SIGNED_WORD = int16_t;
+
+struct SDL_Renderer;
 
 class Emulator 
 {
@@ -23,10 +26,12 @@ public:
 	Emulator();
 	void KeyPressed(int key);
 	void KeyReleased(int key);
+	friend void DrawGraphics(SDL_Renderer*& renderer, const Emulator& emu);
 
 #ifndef MY_NGTEST
 	FRIEND_TEST(EmulatorTest, Foo);
 	FRIEND_TEST(EmulatorTest, CPUTest);
+	friend std::map<char, bool> GetFlags(const Emulator& emu);
 #endif // !MY_NGTEST
 
 private:
@@ -170,12 +175,42 @@ private:
 	// Emulator.cpp
 	int ExecuteNextOpcode();
 	int ExecuteOpcode(BYTE opcode);
+	int ExecuteExtendedOpcode();
 
 	// CPUFunctions.cpp
 	void CPU_8BIT_LOAD(BYTE& reg);
+
 	void CPU_8BIT_ADD(BYTE& reg, BYTE toAdd,
 		bool useImmediate, bool addCarry);
+	void CPU_8BIT_SUB(BYTE& reg, BYTE subtracting,
+		bool useImmediate, bool subCarry);
+	void CPU_8BIT_CP(BYTE& reg, BYTE subtracting, bool useImmediate);
+	void CPU_8BIT_INC(BYTE& reg);
+	void CPU_8BIT_DEC(BYTE& reg);
+	void CPU_8BIT_AND(BYTE& reg, BYTE toAnd, bool useImmediate);
+	void CPU_8BIT_OR(BYTE& reg, BYTE toOr, bool useImmediate);
+	void CPU_8BIT_XOR(BYTE& reg, BYTE toXOr, bool useImmediate);
+	void CPU_DAA();
+
 	// For LD HL, SP+e8
 	void CPU_16BIT_LOAD();
 
+	void CPU_16BIT_ADD(WORD& reg, WORD toAdd);
+	void CPU_16BIT_ADD_SP();
+
+	void CPU_RLC(BYTE& reg, bool isA);
+	void CPU_RRC(BYTE& reg, bool isA);
+	void CPU_RL(BYTE& reg, bool isA);
+	void CPU_RR(BYTE& reg, bool isA);
+	// shift left arithmetically (basically bit 0 gets set to 0) (bit 7 goes into carry)
+	void CPU_SLA(BYTE& reg);
+	// shift right. LSB into carry. bit 7 doesn't change
+	void CPU_SRA(BYTE& reg);
+	// shift right. bit 0 into carry
+	void CPU_SRL(BYTE& reg);
+
+	void CPU_JUMP(bool useCondition, int flag, bool condition);
+	void CPU_JUMP_IMMEDIATE(bool useCondition, int flag, bool condition);
+	void CPU_CALL(bool useCondition, int flag, bool condition);
+	void CPU_RETURN(bool useCondition, int flag, bool condition);
 };

@@ -5,7 +5,7 @@ void Emulator::RequestInterupt(int id)
 {
 	BYTE req = ReadMemory(0xFF0F);
 	req = BitSet(req, id);
-	WriteMemory(0xFF0F, id);
+	WriteMemory(0xFF0F, req);
 }
 
 void Emulator::DoInterupts()
@@ -31,6 +31,7 @@ void Emulator::DoInterupts()
 
 void Emulator::ServiceInterupt(int interupt)
 {
+	m_Halted = false;
 	m_InteruptMaster = false;
 	BYTE req = ReadMemory(0xFF0F);
 	req = BitReset(req, interupt);

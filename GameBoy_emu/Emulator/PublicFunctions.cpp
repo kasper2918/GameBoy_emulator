@@ -10,7 +10,11 @@ void Emulator::Update()
 
     while (cyclesThisUpdate < MAXCYCLES)
     {
-        // TODO: implement this
+        int cycles = ExecuteNextOpcode();
+        cyclesThisUpdate += cycles;
+        UpdateTimers(cycles);
+        UpdateGraphics(cycles);
+        DoInterupts();
     }
 }
 
@@ -31,6 +35,8 @@ void Emulator::LoadGame(std::string_view path)
     case 6: m_MBC2 = true; break;
     default: break;
     }
+
+    std::copy_n(m_CartridgeMemory.get(), 0x8000, m_Rom);
 }
 
 Emulator::Emulator() {
