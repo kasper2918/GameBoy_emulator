@@ -6,7 +6,11 @@ Emulator will automatically open file dialog, simply choose Game Boy rom.
 
 ## Controls
 A = A,
+
 B = S, 
+
 Select = Space,
+
 Start = Enter 
+
 arrows = D-pad
