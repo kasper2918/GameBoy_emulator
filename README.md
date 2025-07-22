@@ -2,10 +2,11 @@
 Simple Nintendo Game Boy with no sound (yet)
 
 ## Usage
-### Windows
-Open windows directory and execute GameBoy_emu.exe
-in command line with rom path as only argument
-(.\GameBoy_emu.exe [rom_path])
+Emulator will automatically open file dialog, simply choose Game Boy rom.
 
 ## Controls
-A, B, Space, Enter and arrows.
+A = A,
+B = S, 
+Select = Space,
+Start = Enter 
+arrows = D-pad

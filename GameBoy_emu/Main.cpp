@@ -3,6 +3,7 @@
 
 #include "Emulator/Emulator.h"
 #include <iostream>
+#include <future>
 
 constexpr int WIDTH_MULT{ 4 };
 constexpr int HEIGHT_MULT{ 3 };
@@ -57,6 +58,33 @@ void DrawGraphics(SDL_Renderer*& renderer, const Emulator& emu) {
 	SDL_RenderPresent(renderer);
 }
 
+static const SDL_DialogFileFilter filters[] = {
+	{ "GameBoy rom",  "gb" },
+};
+
+static void SDLCALL callback(void* userdata, const char* const* filelist, int filter)
+{
+	auto emu = (Emulator*)userdata;
+
+	if (!filelist) {
+		SDL_Log("An error occured: %s", SDL_GetError());
+		emu->gameLoadStatus = -1;
+		return;
+	}
+	else if (!*filelist) {
+		SDL_Log("The user did not select any file.");
+		SDL_Log("Most likely, the dialog was canceled.");
+		emu->gameLoadStatus = -1;
+		return;
+	}
+
+	if (*filelist) {
+		SDL_Log("Full path to selected file: '%s'", *filelist);
+		emu->LoadGame(*filelist);
+		emu->gameLoadStatus = 1;
+		return;
+	}
+}
 
 int main(int argc, char* argv[])
 {
@@ -81,11 +109,16 @@ int main(int argc, char* argv[])
 		return 3;
 	}
 
-	if (argc < 2) {
+	/*if (argc < 2) {
 		std::cout << "Usage: .\\GameBoy_emu.exe [rom_path]";
 		return 1;
 	}
-	emu.LoadGame(argv[1]);
+	emu.LoadGame(argv[1]);*/
+
+	auto aboba = std::async(std::launch::deferred, SDL_ShowOpenFileDialog,
+		callback, &emu, nullptr, filters, 1, "", false);
+
+	aboba.wait();
 
 	constexpr double fps{ 60 };
 	constexpr double interval{ 1000 / fps };
@@ -94,6 +127,12 @@ int main(int argc, char* argv[])
 
 	while (true)
 	{
+		if (emu.gameLoadStatus == -1)
+		{
+			SDL_Log("You should load valid Game Boy rom (*.gb)");
+			return -1;
+		}
+
 		SDL_PollEvent(&event);
 		if (event.type == SDL_EVENT_KEY_DOWN) {
 			int key{ GetKey(event) };
@@ -109,7 +148,7 @@ int main(int argc, char* argv[])
 			return 0;
 
 		Uint64 current{ SDL_GetTicks() };
-		if (time2 + interval < current) {
+		if (time2 + interval < current && emu.gameLoadStatus == 1) {
 			emu.Update();
 			DrawGraphics(renderer, emu);
 			time2 = current;

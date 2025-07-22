@@ -20,6 +20,8 @@ struct SDL_Renderer;
 class Emulator 
 {
 public:
+	int gameLoadStatus{};
+
 	// PublicFunctions.cpp
 	void Update();
 	void LoadGame(std::string_view path);

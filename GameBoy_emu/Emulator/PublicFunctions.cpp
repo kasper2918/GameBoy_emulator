@@ -37,6 +37,8 @@ void Emulator::LoadGame(std::string_view path)
     }
 
     std::copy_n(m_CartridgeMemory.get(), 0x8000, m_Rom);
+
+    gameLoadStatus = 1;
 }
 
 Emulator::Emulator() {
